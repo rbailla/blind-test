@@ -1,0 +1,13 @@
+{
+  "name": "blindtest-dj-rems",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Blind test DJ Rems - régie web + téléphones 4G/5G/Wi-Fi",
+  "main": "server.js",
+  "scripts": {"start": "node server.js"},
+  "dependencies": {
+    "express": "^4.21.2",
+    "qrcode": "^1.5.4",
+    "socket.io": "^4.8.1"
+  }
+}
