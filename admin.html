@@ -1,0 +1,25 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Blind Test DJ Rems — Régie</title><script src="/socket.io/socket.io.js"></script>
+<style>
+body{font-family:Arial,sans-serif;background:#111;color:#eee;margin:0;padding:20px}.wrap{max-width:1100px;margin:auto}
+h1{margin:0 0 5px}.muted{color:#aaa}.bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:18px 0}button{border:0;border-radius:9px;padding:11px 15px;font-weight:bold;cursor:pointer}.primary{background:#fff;color:#111}.dark{background:#292929;color:#fff}.danger{background:#d9534f;color:#fff}.status{padding:8px 12px;border-radius:999px;background:#292929}
+.login{background:#191919;border:1px solid #333;border-radius:14px;padding:15px;margin-bottom:20px}.login input{padding:12px;border-radius:8px;border:1px solid #444;background:#222;color:#fff;font-size:16px;width:150px}.qr{display:flex;gap:20px;align-items:center;background:#191919;padding:15px;border-radius:14px;margin-bottom:20px}.qr img{width:190px;background:#fff;padding:5px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:12px}.card{background:#191919;border:1px solid #333;border-radius:14px;padding:15px}.submitted{outline:2px solid #6d6}.top{display:flex;justify-content:space-between}.score{font-size:34px;font-weight:800}.answer{min-height:44px;padding:10px;background:#222;border-radius:8px;margin:10px 0;word-break:break-word}.actions{display:flex;gap:7px;flex-wrap:wrap}.actions button{padding:9px 12px}
+@media(max-width:600px){body{padding:12px}.qr{flex-direction:column;align-items:flex-start}}
+</style></head><body><div class="wrap">
+<h1>Blind Test DJ Rems</h1><div class="muted">Régie — compatible 4G / 5G / Wi‑Fi</div>
+<div id="login" class="login"><strong>Accès régie</strong><p class="muted">Entre le PIN administrateur.</p><input id="pin" type="password" inputmode="numeric" placeholder="PIN"><button id="auth" class="primary">Ouvrir la régie</button><span id="bad" style="color:#f77"></span></div>
+<div id="app" style="display:none">
+<div class="bar"><strong>Question <span id="q">1</span></strong><span id="status" class="status">Réponses ouvertes</span><button id="toggle" class="primary">Fermer les réponses</button><button id="next" class="primary">Question suivante</button><button id="resetScores" class="dark">Scores à 0</button><button id="resetAll" class="danger">Tout réinitialiser</button></div>
+<div class="qr"><img id="qr"><div><h2>Connexion des équipes</h2><p>Code salle : <strong id="room"></strong></p><p id="url" style="word-break:break-all"></p><p class="muted">Affiche ce QR code sur l'écran. Chaque équipe peut utiliser son Wi‑Fi ou sa 4G/5G.</p></div></div>
+<div id="grid" class="grid"></div></div></div>
+<script>
+const s=io();let state={teams:[]};const $=x=>document.getElementById(x);
+fetch('/api/info').then(r=>r.json()).then(x=>{$('qr').src=x.qr;$('room').textContent=x.room;$('url').textContent=x.teamUrl});
+$('auth').onclick=()=>s.emit('admin:auth',{pin:$('pin').value});$('pin').onkeydown=e=>{if(e.key==='Enter')$('auth').click()};
+s.on('admin:ok',st=>{state=st;$('login').style.display='none';$('app').style.display='block';render()});s.on('admin:bad',()=>{$('bad').textContent=' PIN incorrect';});
+s.on('state',st=>{state=st;if($('app').style.display!=='none')render()});
+$('toggle').onclick=()=>s.emit('admin:toggleAccepting');$('next').onclick=()=>s.emit('admin:newQuestion');$('resetScores').onclick=()=>s.emit('admin:resetScores');$('resetAll').onclick=()=>{if(confirm('Tout remettre à zéro ?'))s.emit('admin:resetAll')};
+function render(){ $('q').textContent=state.question;$('status').textContent=state.accepting?'Réponses ouvertes':'Réponses fermées';$('toggle').textContent=state.accepting?'Fermer les réponses':'Rouvrir les réponses';
+const teams=[...state.teams].sort((a,b)=>b.score-a.score);$('grid').innerHTML=teams.map((t,i)=>`<div class="card ${t.submitted?'submitted':''}"><div class="top"><div><strong>${i+1}. ${esc(t.name)}</strong><div class="muted">${t.submitted?'Réponse reçue':'Pas encore répondu'}</div></div><div class="score">${t.score}</div></div><div class="answer">${t.answer?esc(t.answer):'<span class="muted">—</span>'}</div><div class="actions"><button class="primary" onclick="score('${t.id}',1)">+1</button><button class="primary" onclick="score('${t.id}',2)">+2</button><button class="primary" onclick="score('${t.id}',3)">+3</button><button class="dark" onclick="score('${t.id}',-1)">−1</button><button class="dark" onclick="score('${t.id}',-2)">−2</button></div></div>`).join('')}
+function score(id,d){s.emit('admin:score',{teamId:id,delta:d})}function esc(x){return String(x).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+</script></body></html>
